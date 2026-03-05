@@ -17,7 +17,7 @@ func SetupDirectoryFlag(cmd *cobra.Command, description string) func() string {
 		if err != nil {
 			panic(err)
 		}
-		if dir != "" {
+		if dir == "" {
 			dir, err = os.Getwd()
 			if err != nil {
 				panic(err)
