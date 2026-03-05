@@ -32,7 +32,7 @@ func Cmd() *cobra.Command {
 			"application/port/in",
 			"application/port/out",
 		} {
-			if err := os.MkdirAll(filepath.Join(dir, path), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Join(dir, component, path), 0755); err != nil {
 				return err
 			}
 		}
