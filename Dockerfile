@@ -1,5 +1,7 @@
 FROM golang:1.25.1 AS builder
 
+ARG GOKIT_VERSION=dev
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -7,7 +9,8 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o gokit .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags "-s -w -X main.version=${GOKIT_VERSION}" -o gokit .
 
 FROM debian:bookworm-slim
 
@@ -19,4 +22,3 @@ COPY --from=builder /app/gokit /usr/local/bin/gokit
 
 ENTRYPOINT ["gokit"]
 CMD ["--help"]
-

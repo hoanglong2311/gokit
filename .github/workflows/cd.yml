@@ -13,70 +13,62 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
 
-      - name: Bump version and push tag
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bump version, update CHANGELOG, and push
         id: bump
         run: |
+          npm install -g commit-and-tag-version
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [[ -z "$latest_tag" ]]; then
-            latest_tag="v0.0.0"
             commit_messages=$(git log --pretty=format:"%s")
           else
             commit_messages=$(git log --pretty=format:"%s" "$latest_tag"..HEAD)
           fi
 
           if [[ -z "$commit_messages" ]]; then
-            echo "No new commits since $latest_tag, skipping release."
+            echo "No new commits since last tag, skipping release."
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          major=$(echo "$latest_tag" | sed 's/^v//' | cut -d. -f1)
-          minor=$(echo "$latest_tag" | sed 's/^v//' | cut -d. -f2)
-          patch=$(echo "$latest_tag" | sed 's/^v//' | cut -d. -f3)
-
-          change_type="none"
+          has_conventional=false
           while IFS= read -r msg; do
-            if [[ "$msg" == *"BREAKING CHANGE"* || "$msg" == *"!"* ]]; then
-              change_type="breaking"
+            if [[ "$msg" =~ ^(feat|fix|refactor|perf|docs|style|test|build|ci|chore|revert)(\(.*\))?!?:\ .+ ]]; then
+              has_conventional=true
               break
-            elif [[ "$msg" == feat:* || "$msg" == feat\(* ]]; then
-              change_type="feat"
-            elif [[ ("$msg" == fix:* || "$msg" == fix\(* || "$msg" == refactor:* || "$msg" == perf:*) && "$change_type" != "feat" ]]; then
-              change_type="fix"
             fi
           done <<< "$commit_messages"
 
-          case $change_type in
-            "breaking")
-              ((major+=1)); minor=0; patch=0 ;;
-            "feat")
-              ((minor+=1)); patch=0 ;;
-            "fix")
-              ((patch+=1)) ;;
-            *)
-              echo "No conventional commits found, skipping release."
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0 ;;
-          esac
+          if [[ "$has_conventional" != "true" ]]; then
+            echo "No conventional commits found, skipping release."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
-          new_tag="v${major}.${minor}.${patch}"
-          echo "Bumping version: $latest_tag -> $new_tag"
+          commit-and-tag-version
+          git push --follow-tags
 
-          git tag "$new_tag"
-          git push origin "$new_tag"
-
-          echo "tag=$new_tag" >> "$GITHUB_OUTPUT"
-          echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
+          tag=$(git describe --tags --abbrev=0)
+          version=${tag#v}
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
@@ -109,6 +101,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          build-args: |
+            GOKIT_VERSION=v${{ steps.bump.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/gokit:${{ steps.bump.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/gokit:latest
