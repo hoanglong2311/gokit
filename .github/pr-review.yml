@@ -1,0 +1,30 @@
+provider: openai
+# model/baseUrl can be overridden by workflow vars AI_REVIEW_MODEL / AI_REVIEW_BASE_URL
+model: gpt-4.1-mini
+
+# Hard limits for GitHub API pull files fetch
+maxFiles: 25
+maxPatchChars: 120000
+
+# Per-file patch included in prompt (additional clipping)
+maxPatchPerFileChars: 12000
+
+# Simple selection controls (suffix-based to keep parser tiny)
+includeSuffixes:
+  - .go
+  - .md
+excludeSuffixes:
+  - .lock
+  - .png
+  - .jpg
+  - .jpeg
+  - .gif
+  - .webp
+
+excludePathsContains:
+  - /vendor/
+  - /node_modules/
+  - /dist/
+
+focusAreas: correctness, security, performance, error-handling, missing tests
+
