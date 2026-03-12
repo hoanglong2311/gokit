@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## [0.1.4](https://github.com/hoanglong2311/gokit/compare/v0.1.3...v0.1.4) (2026-03-12)
+
+
+### Features
+
+* add AI-powered PR review workflow and configuration ([#40](https://github.com/hoanglong2311/gokit/issues/40)) ([127e0e3](https://github.com/hoanglong2311/gokit/commit/127e0e38e488db57b12c3c2b255c921f72d3cd77))
+
 ## [0.1.3](https://github.com/hoanglong2311/gokit/compare/v0.1.2...v0.1.3) (2026-03-05)
 
 
